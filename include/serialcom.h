@@ -18,7 +18,7 @@ enum ComsState {
 class SerialCom {
     public:
         #ifdef ARDUINO
-        begin(HardwereSerial *serial, long int baudrate);
+        void begin(HardwareSerial *serial, long int baudrate);
         #elif defined( RASPBERRY_PI )
         void begin(const char *serialPort, long int baudrate);
         ~SerialCom();
