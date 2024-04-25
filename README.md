@@ -43,40 +43,54 @@ typedef struct {
 SoftwareSerial mySerial(7, 8); // RX, TX
 
 int main() {
-    init();
+  init();
 
-    mySerial.begin(115200);
-    
-    SerialCom serialCom(&Serial, 115200);
+  // For debugging purposes
+  mySerial.begin(115200);
+  
+  // Initialize the serial communication
+  SerialCom serialCom(&Serial, 115200);
 
-    CommandPacket rxPacket;
-    TelemetryPacket txPacket;
+  // Create the packets that will be sent and received
+  CommandPacket rxPacket;
+  TelemetryPacket txPacket;
 
-    while(true) {
+  long int previousMillis = micros();
 
-        if(serialCom.readSerialData((uint8_t*)&rxPacket, sizeof(CommandPacket)) == 1)
-        {
-            // print the received data
-            mySerial.print("Command: ");
-            mySerial.print(rxPacket.command);
-            mySerial.print(" Setpoint1: ");
-            mySerial.print(rxPacket.setpoint1);
-            mySerial.print(" Setpoint2: ");
-            mySerial.println(rxPacket.setpoint2);
-        }
+  while(true)
+  {
+    // Check if theres data available and read it 
+    if(serialCom.readSerialData((uint8_t*)&rxPacket, sizeof(CommandPacket)) == 1)
+    {
+      // Do something with the received data to send back
+      txPacket.status = rxPacket.command;
+      txPacket.var1 = rxPacket.setpoint1;
+      txPacket.var2 = rxPacket.setpoint2;
+      txPacket.var3 = rxPacket.setpoint1*2;
+      txPacket.var4 = rxPacket.setpoint2*2;
 
-        // Send sine wave in telemetry data
-        txPacket.var1 = 1.0 + sin(millis() / 1000.0);
-        txPacket.var2 = 2.0 + cos(millis() / 1000.0);
-        txPacket.var3 = 3.0 + sin(millis() / 1000.0);
-        txPacket.var4 = 4.0 + cos(millis() / 1000.0);
+      //Print the received data
+      mySerial.print("time: ");
+      mySerial.print(micros()-previousMillis);
+      previousMillis = micros();
+      mySerial.print(" Command: ");
+      mySerial.print(rxPacket.command);
+      mySerial.print(" Setpoint1: ");
+      mySerial.print(rxPacket.setpoint1);
+      mySerial.print(" Setpoint2: ");
+      mySerial.println(rxPacket.setpoint2);
 
-        serialCom.sendSerialData((uint8_t*)&txPacket, sizeof(TelemetryPacket));
+    } 
 
-        delay(20);
+    // Send telemetry data every 50ms
+    if(millis() % 50 == 0)
+    {
+      serialCom.sendSerialData((uint8_t*)&txPacket, sizeof(TelemetryPacket));
     }
 
-    return 0;
+    // Rest of code here //
+    
+  }
 }
 
 ```
@@ -84,8 +98,13 @@ int main() {
 ### Example (Raspberry Pi)
 ```cpp
 #include <iostream>
+#include <chrono>
 #include <unistd.h>
+#include <cmath>
 #include "serialcom.h"
+
+#define ELAPSED_TIME_MS(start_time) \
+    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - (start_time)).count()
 
 using namespace std;
 
@@ -108,28 +127,48 @@ typedef struct {
 } TelemetryPacket;
 
 int main() {
-    // Serial communications
-    SerialCom serial("/dev/ttyACM0", 115200);
 
-    // Command and telemetry packets
-    CommandPacket txPacket = {3, 1.5, 3.2};
-    TelemetryPacket rxPacket;
+  // Serial comunications
+  SerialCom serial("/dev/ttyACM0", 115200);
 
-    while (true) {
-        // Read data from serial port
-        if (serial.readSerialData(reinterpret_cast<uint8_t*>(&rxPacket), sizeof(TelemetryPacket)) == 1) {
-            // Do something with rxPacket
-            // rxPacket.status ..
-        }
+  // Command and telemetry packets
+  CommandPacket txPacket = {1, 1.1, 2.3};
+  TelemetryPacket rxPacket;
 
-        // Send data
-        serial.sendSerialData((uint8_t *)&txPacket,sizeof(CommandPacket));
+  // Timers 
+  auto start_time = std::chrono::steady_clock::now();
+  auto function_time = std::chrono::steady_clock::now();
 
-        // Sleep for 20 ms
-        usleep(20000);
+  while (true) {
+
+    // Read data from serial port
+    if(serial.readSerialData((uint8_t *)&rxPacket,sizeof(TelemetryPacket)) == 1)
+    {
+      
+      printf("Received data: %d %f %f %f %f\n", rxPacket.status, rxPacket.var1, rxPacket.var2, rxPacket.var3, rxPacket.var4);
+      
     }
 
-    return 0;
+    // Send data every 50 ms
+    if (ELAPSED_TIME_MS(start_time) >  50)
+    {
+      // Create sine wave with setpoints
+      txPacket.command += 1;
+      txPacket.setpoint1 = 1.0 + sin(ELAPSED_TIME_MS(function_time)/1000.0);
+      txPacket.setpoint2 = 1.0 + cos(ELAPSED_TIME_MS(function_time)/1000.0);
+
+      // Send data to serial port
+      serial.sendSerialData((uint8_t *)&txPacket,sizeof(CommandPacket));
+
+      // Reset timer
+      start_time = std::chrono::steady_clock::now();
+    }
+    
+    // Rest of code here //
+
+  }
+
+  return 0;
 }
 ```
 
