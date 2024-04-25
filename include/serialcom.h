@@ -24,10 +24,10 @@ class SerialCom {
         ~SerialCom();
         #endif
         SerialCom(); // Default constructor
-        void sendSerialData(const uint8_t * data, size_t size);
-        int readSerialData(uint8_t * data, size_t size);
-        int readSerial(uint8_t *data, size_t size);
-        int writeSerial(const uint8_t *data, size_t size);
+        void sendSerialData(const uint8_t * data, uint8_t size);
+        int recieveSerialData(uint8_t * data, uint8_t size);
+        int readSerial(uint8_t *data, uint8_t size);
+        int writeSerial(const uint8_t *data, uint8_t size);
         int available(void);
         void wait(unsigned long us);
         void closeSerial(void);

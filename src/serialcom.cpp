@@ -93,35 +93,25 @@ SerialCom::~SerialCom() {
 }
 #endif
 
-int SerialCom::readSerialData(uint8_t *data, size_t size) {
-  if((unsigned int) SerialCom::available() < size + 3) {
+int SerialCom::recieveSerialData(uint8_t *data, uint8_t size) {
+  // We wait form start marker, data length, data and checksum so its 3 bytes + data length
+  if(SerialCom::available() < size + 3) {
     return -1; // No data available yet
   }
-
-  // Calculate timout for 1 byte at current baud rate
-  // 1 start bit + 8 data bits + 1 stop bit = 10 bits
-  // unsigned long timeout_microseconds = ((10 * 1000000L) / this->baudRate)*1.1; // 10% margin 
 
   // Read start of packet marker
   const uint8_t SOP_MARKER = 0xFF;
   uint8_t sop = 0x00;
-
-  if(SerialCom::readSerial(&sop, 1) != 1 || sop != SOP_MARKER) {
-		return -2; // Failed to read start of packet marker or marker mismatch
-  }
   
+  if(SerialCom::readSerial(&sop, 1) != 1 || sop != SOP_MARKER) {
+    return -2; // Failed to read start of packet marker or marker mismatch
+  }
+
   // Read data length
   uint8_t dataSize;
 
   if(SerialCom::readSerial(&dataSize, 1) != 1 || dataSize > size) {
     return -3; // Failed to read data length or data exceeds buffer size
-    
-  }
-
-
-  // Check if enough data is available
-  if(SerialCom::available() < dataSize + 1) {
-      return -4; // Not enough data available
   }
 
   // Read data
@@ -144,17 +134,17 @@ int SerialCom::readSerialData(uint8_t *data, size_t size) {
   if (computedChecksum != checksum) {
     return -7; // Checksum mismatch
   }
-
+  newPacketInProgress = false;
   return true; // Packet received successfully
 }
 
-void SerialCom::sendSerialData(const uint8_t * data, size_t size) {
+void SerialCom::sendSerialData(const uint8_t * data, uint8_t size) {
   uint8_t checksum = 0;
   const uint8_t SOP_MARKER = 0xFF;
   #if defined( ARDUINO )
   _hardwareSerial->write(SOP_MARKER);
   _hardwareSerial->write(size);
-  for (size_t i = 0; i < size; i++){
+  for (uint8_t i = 0; i < size; i++){
     _hardwareSerial->write(data[i]);
     checksum += data[i];
   }
@@ -163,7 +153,7 @@ void SerialCom::sendSerialData(const uint8_t * data, size_t size) {
   #elif defined( RASPBERRY_PI )
   write(fd, &SOP_MARKER, 1);
   write(fd, &size, 1);
-  for (size_t i = 0; i < size; i++) {
+  for (uint8_t i = 0; i < size; i++) {
     write(fd, &data[i], 1);
     checksum += data[i];
   }
@@ -172,7 +162,7 @@ void SerialCom::sendSerialData(const uint8_t * data, size_t size) {
 }
 
 
-int SerialCom::readSerial(uint8_t *data, size_t size) {
+int SerialCom::readSerial(uint8_t *data, uint8_t size) {
   #if defined( ARDUINO )
   return _hardwareSerial->readBytes(data, size);
   #elif defined( RASPBERRY_PI )
@@ -190,7 +180,7 @@ int SerialCom::available(void) {
   #endif
 }
 
-int SerialCom::writeSerial(const uint8_t *data, size_t size) {
+int SerialCom::writeSerial(const uint8_t *data, uint8_t size) {
   #if defined( ARDUINO )
   return _hardwareSerial->write(data, size);
   #elif defined( RASPBERRY_PI )
