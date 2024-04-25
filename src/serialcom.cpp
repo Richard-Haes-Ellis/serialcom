@@ -20,16 +20,20 @@
 #pragma message("Compiling for Raspberry Pi")
 #endif
 
+SerialCom::SerialCom() {
+  // Default constructor
+}
+
 
 #if defined( ARDUINO )
-SerialCom::SerialCom(HardwareSerial* serial,long int baudrate){
+void SerialCom::begin(HardwareSerial* serial,long int baudrate){
     _hardwareSerial = serial;
     _baudRate = baudrate;
     // Initialize serial communication with the specified baud rate
     _hardwareSerial->begin(_baudRate);
 }
 #elif defined( RASPBERRY_PI )
-SerialCom::SerialCom(const char *serialPort,long int baudrate){
+void SerialCom::begin(const char *serialPort,long int baudrate){
   _baudRate = baudrate;
   // Open serial port
   this->fd = open(serialPort, O_RDWR | O_NOCTTY | O_NDELAY);
@@ -85,7 +89,7 @@ SerialCom::SerialCom(const char *serialPort,long int baudrate){
 
 #if defined( RASPBERRY_PI )
 SerialCom::~SerialCom() {
-  close(this->fd);
+  close(fd);
 }
 #endif
 
@@ -176,7 +180,7 @@ int SerialCom::readSerial(uint8_t *data, size_t size) {
   #endif
 }
 
-int SerialCom::available() {
+int SerialCom::available(void) {
   #if defined( ARDUINO )
   return _hardwareSerial->available();
   #elif defined( RASPBERRY_PI )
@@ -199,5 +203,11 @@ void SerialCom::wait(unsigned long us) {
   delayMicroseconds(us);
   #elif defined( RASPBERRY_PI )
   usleep(us);
+  #endif
+}
+
+void SerialCom::closeSerial(void) {
+  #if defined( RASPBERRY_PI )
+  close(fd);
   #endif
 }

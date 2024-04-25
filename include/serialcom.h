@@ -18,17 +18,19 @@ enum ComsState {
 class SerialCom {
     public:
         #ifdef ARDUINO
-        SerialCom(HardwareSerial *serial, long int baudrate);
+        begin(HardwereSerial *serial, long int baudrate);
         #elif defined( RASPBERRY_PI )
-        SerialCom(const char *serialPort, long int baudrate);
+        void begin(const char *serialPort, long int baudrate);
         ~SerialCom();
         #endif
+        SerialCom(); // Default constructor
         void sendSerialData(const uint8_t * data, size_t size);
         int readSerialData(uint8_t * data, size_t size);
         int readSerial(uint8_t *data, size_t size);
         int writeSerial(const uint8_t *data, size_t size);
-        int available();
+        int available(void);
         void wait(unsigned long us);
+        void closeSerial(void);
     private:
         #ifdef RASPBERRY_PI
         int fd;
