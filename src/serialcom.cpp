@@ -134,7 +134,6 @@ int SerialCom::recieveSerialData(uint8_t *data, uint8_t size) {
   if (computedChecksum != checksum) {
     return -7; // Checksum mismatch
   }
-  newPacketInProgress = false;
   return true; // Packet received successfully
 }
 
