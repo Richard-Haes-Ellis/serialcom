@@ -53,6 +53,9 @@ void SerialCom::begin(const char *serialPort,long int baudrate){
   } else if(_baudRate == 115200) {
     cfsetispeed(&options, B115200);
     cfsetospeed(&options, B115200);
+  } else if(_baudRate == 230400) {
+    cfsetispeed(&options, B230400);
+    cfsetospeed(&options, B230400);
   } else {
     printf("Unsupported baud rate\n");
     exit(1);
